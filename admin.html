@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Wheelie — Admin</title>
+    <link rel="icon" href="/wheelie-avatar.jpg" type="image/jpeg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="admin-page">
+      <header class="admin-head">
+        <div>
+          <p class="eyebrow" style="margin-bottom:4px">WHEELIE</p>
+          <h1>Wheelie activity</h1>
+          <p>Demos booked, messages sent, and subscriptions started through the assistant.</p>
+        </div>
+        <form class="admin-token-form" id="token-form">
+          <input id="admin-token" type="password" placeholder="Admin token" autocomplete="current-password" />
+          <button class="btn btn-primary btn-sm" type="submit">Load</button>
+        </form>
+      </header>
+
+      <div id="admin-status" class="form-note" role="status"></div>
+
+      <div class="admin-stats" id="admin-stats" hidden>
+        <div class="stat"><div class="num" id="stat-demos">0</div><div class="lbl">Demos booked</div></div>
+        <div class="stat"><div class="num" id="stat-contacts">0</div><div class="lbl">Messages</div></div>
+        <div class="stat"><div class="num" id="stat-purchases">0</div><div class="lbl">Paid subscriptions</div></div>
+      </div>
+
+      <section class="admin-section" id="demos-section" hidden>
+        <h2>Demo bookings</h2>
+        <div class="table-wrap"><table id="demos-table"></table></div>
+      </section>
+
+      <section class="admin-section" id="contacts-section" hidden>
+        <h2>Contact messages</h2>
+        <div class="table-wrap"><table id="contacts-table"></table></div>
+      </section>
+
+      <section class="admin-section" id="purchases-section" hidden>
+        <h2>Stripe purchases</h2>
+        <div class="table-wrap"><table id="purchases-table"></table></div>
+      </section>
+
+      <section class="admin-section" id="events-section" hidden>
+        <h2>Recent events</h2>
+        <div class="table-wrap"><table id="events-table"></table></div>
+      </section>
+    </main>
+    <script type="module" src="/admin.js"></script>
+  </body>
+</html>

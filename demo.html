@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#060b16" />
+    <title>Wheelie widget preview — Salvage Pulse</title>
+    <link rel="icon" href="/wheelie-avatar.jpg" type="image/jpeg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="demo-page">
+    <header class="demo-nav">
+      <a href="https://site.salvagepulsepro.com/" target="_blank" rel="noreferrer">
+        <img src="/salvage-pulse-logo.png" alt="Salvage Pulse" class="demo-logo" />
+      </a>
+      <nav>
+        <a href="https://site.salvagepulsepro.com/#overview" target="_blank" rel="noreferrer">Overview</a>
+        <a href="https://site.salvagepulsepro.com/#pricing" target="_blank" rel="noreferrer">Pricing</a>
+        <a href="/full">Full chat</a>
+        <a class="btn btn-ghost btn-sm" href="https://cal.com/gen-keech-avipdc/live-demo" target="_blank" rel="noreferrer">Book a demo</a>
+      </nav>
+    </header>
+
+    <main class="demo-main">
+      <section class="demo-hero">
+        <p class="eyebrow">WHEELIE IS LIVE</p>
+        <h1>Your yard assistant,<br /><span>right in the corner.</span></h1>
+        <p>
+          This is the same compact Wheelie widget that embeds on
+          <strong>site.salvagepulsepro.com</strong>. He answers product questions, books Cal.com
+          demos, and can connect to a yard account for account-aware answers.
+        </p>
+        <div class="demo-actions">
+          <button class="btn btn-primary" id="open-wheelie" type="button">Open Wheelie</button>
+          <a class="btn btn-ghost" href="https://cal.com/gen-keech-avipdc/live-demo" target="_blank" rel="noreferrer">Book a 1-on-1 demo</a>
+        </div>
+        <div class="demo-hint">
+          <img src="/wheelie-avatar.jpg" alt="" width="38" height="38" />
+          <span>Wait a couple of seconds — Wheelie will pop up a small greeting in the bottom-right corner.</span>
+        </div>
+      </section>
+
+      <section class="demo-grid">
+        <article>
+          <span class="demo-num">01</span>
+          <h2>Small popup, not a full page</h2>
+          <p>The widget opens as a compact 360 × 540 chat panel anchored to the bottom-right.</p>
+        </article>
+        <article>
+          <span class="demo-num">02</span>
+          <h2>Wheelie’s face on the bubble</h2>
+          <p>The launcher uses the Wheelie avatar, with a short teaser message and a dismiss button.</p>
+        </article>
+        <article>
+          <span class="demo-num">03</span>
+          <h2>One script tag to embed</h2>
+          <p>Add the widget script to the marketing site and the same experience appears there.</p>
+        </article>
+      </section>
+    </main>
+
+    <script src="/widget.js" defer></script>
+    <script>
+      document.getElementById("open-wheelie").addEventListener("click", () => {
+        const button = document.querySelector("#sp-chat-widget .sp-chat-button");
+        if (button) button.click();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+node_modules/
+.env
+data/store.json
+data/*.tmp
+*.log
+.DS_Store

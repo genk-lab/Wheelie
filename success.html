@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#060b16" />
+    <title>Checkout complete — Salvage Pulse</title>
+    <link rel="icon" href="/wheelie-avatar.jpg" type="image/jpeg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="status-page">
+      <section class="status-card" id="status-card">
+        <div class="status-icon" id="status-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" opacity=".35"/><path d="M12 7v5l3 2"/></svg>
+        </div>
+        <h1 id="status-title">Verifying your checkout…</h1>
+        <p id="status-message">Hang tight while we confirm the payment with Stripe.</p>
+        <div class="status-detail" id="status-detail" hidden></div>
+        <div class="status-actions">
+          <a class="btn btn-primary" href="/full">Back to Wheelie</a>
+          <a class="btn btn-ghost" href="https://app.salvagepulsepro.com/login" target="_blank" rel="noreferrer">Open yard console</a>
+        </div>
+        <p class="form-note" style="margin-top:16px">
+          Questions about your subscription? Email <a href="mailto:sales@salvagepulse.com">sales@salvagepulse.com</a>.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const sessionId = params.get("session_id");
+        const title = document.getElementById("status-title");
+        const message = document.getElementById("status-message");
+        const detail = document.getElementById("status-detail");
+        const icon = document.getElementById("status-icon");
+
+        function money(cents, currency) {
+          if (cents == null) return "—";
+          return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: (currency || "usd").toUpperCase(),
+          }).format(cents / 100);
+        }
+
+        function addRow(label, value) {
+          if (!value) return;
+          const row = document.createElement("div");
+          row.className = "summary-row";
+          const left = document.createElement("span");
+          left.textContent = label;
+          const right = document.createElement("strong");
+          right.textContent = value;
+          row.appendChild(left);
+          row.appendChild(right);
+          detail.appendChild(row);
+        }
+
+        if (!sessionId) {
+          icon.classList.add("warn");
+          title.textContent = "No checkout session found";
+          message.textContent = "Start a subscription from Wheelie or contact the team if you were charged.";
+          return;
+        }
+
+        fetch("/api/checkout/status?session_id=" + encodeURIComponent(sessionId))
+          .then(function (response) {
+            return response.json().then(function (data) {
+              if (!response.ok) throw new Error(data.error || "Could not verify checkout.");
+              return data;
+            });
+          })
+          .then(function (data) {
+            const paid =
+              data.paymentStatus === "paid" ||
+              data.paymentStatus === "no_payment_required" ||
+              data.status === "complete";
+            if (paid) {
+              icon.innerHTML =
+                '<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+              title.textContent = "You're all set";
+              message.textContent =
+                "Your Salvage Pulse subscription is active. Stripe emailed your receipt, and the team will follow up on onboarding.";
+            } else {
+              icon.classList.add("warn");
+              title.textContent = "Payment is processing";
+              message.textContent =
+                "Stripe has not marked the payment as paid yet. This can take a moment for some payment methods.";
+            }
+
+            detail.hidden = false;
+            addRow("Plan", data.planName ? data.planName + (data.interval === "year" ? " · Annual" : " · Monthly") : "—");
+            addRow("Charged today", money(data.amountTotal, data.currency));
+            addRow("Email", data.email || "—");
+            addRow("Reference", data.id);
+          })
+          .catch(function (error) {
+            icon.classList.add("warn");
+            title.textContent = "We could not verify the checkout";
+            message.textContent =
+              error.message + " If you were charged, email sales@salvagepulse.com with your Stripe receipt.";
+          });
+      })();
+    </script>
+  </body>
+</html>
