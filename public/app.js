@@ -118,6 +118,8 @@ function renderMarkdown(value) {
   return html;
 }
 
+let formSeq = 0;
+
 function money(value) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -1147,6 +1149,7 @@ function renderContactForm(host, action) {
   const department = action.department === "support" ? "support" : "sales";
   const email = department === "support" ? "support@salvagepulse.com" : "sales@salvagepulse.com";
   const savedEmail = localStorage.getItem(EMAIL_KEY) || "";
+  const uid = `contact-${++formSeq}`;
 
   const card = document.createElement("div");
   card.className = "action-card form-card";
@@ -1166,27 +1169,27 @@ function renderContactForm(host, action) {
     <form class="form-card" novalidate>
       <div class="field-grid">
         <div class="field">
-          <label for="contact-name">Name *</label>
-          <input id="contact-name" name="name" type="text" placeholder="Marcus Vance" autocomplete="name" required />
+          <label for="${uid}-name">Name *</label>
+          <input id="${uid}-name" name="name" type="text" placeholder="Marcus Vance" autocomplete="name" required />
         </div>
         <div class="field">
-          <label for="contact-email">Email *</label>
-          <input id="contact-email" name="email" type="email" inputmode="email" placeholder="marcus@acmeauto.com" value="${escapeHtml(
+          <label for="${uid}-email">Email *</label>
+          <input id="${uid}-email" name="email" type="email" inputmode="email" placeholder="marcus@acmeauto.com" value="${escapeHtml(
             savedEmail,
           )}" autocomplete="email" required />
         </div>
         <div class="field">
-          <label for="contact-yard">Yard / company</label>
-          <input id="contact-yard" name="yard" type="text" placeholder="Acme Auto Recyclers" autocomplete="organization" />
+          <label for="${uid}-yard">Yard / company</label>
+          <input id="${uid}-yard" name="yard" type="text" placeholder="Acme Auto Recyclers" autocomplete="organization" />
         </div>
         <div class="field">
-          <label for="contact-phone">Phone</label>
-          <input id="contact-phone" name="phone" type="tel" inputmode="tel" placeholder="(555) 234-5678" autocomplete="tel" />
+          <label for="${uid}-phone">Phone</label>
+          <input id="${uid}-phone" name="phone" type="tel" inputmode="tel" placeholder="(555) 234-5678" autocomplete="tel" />
         </div>
       </div>
       <div class="field">
-        <label for="contact-message">How can we help? *</label>
-        <textarea id="contact-message" name="message" placeholder="Tell us about your phone system, rep count, and what you need." required></textarea>
+        <label for="${uid}-message">How can we help? *</label>
+        <textarea id="${uid}-message" name="message" placeholder="Tell us about your phone system, rep count, and what you need." required></textarea>
       </div>
       <button class="btn btn-primary" type="submit" data-submit>Send message to ${department === "support" ? "support" : "sales"}</button>
       <p class="form-error" data-error hidden></p>
@@ -1712,6 +1715,14 @@ function setupEmbed() {
   close.setAttribute("aria-label", "Close chat");
   close.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
   close.addEventListener("click", () => {
+    window.parent?.postMessage({ type: "sp-chat-close" }, "*");
+  });
+
+  // Escape closes the widget, unless the account dialog is open.
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const modal = document.getElementById("account-modal");
+    if (modal && !modal.hidden) return;
     window.parent?.postMessage({ type: "sp-chat-close" }, "*");
   });
   actions.insertBefore(close, newChatButton);

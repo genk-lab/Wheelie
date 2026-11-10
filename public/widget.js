@@ -343,6 +343,7 @@
     open = next;
     applyState();
     if (open) frame.focus();
+    else button.focus();
   }
 
   button.addEventListener("click", () => setOpen(!open));
