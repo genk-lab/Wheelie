@@ -1680,7 +1680,8 @@ function setupEmbed() {
 
   const header = $(".chat-header");
   const newChatButton = $("#new-chat");
-  if (!header || !newChatButton) return;
+  const actions = newChatButton?.parentElement;
+  if (!header || !newChatButton || !actions) return;
 
   const close = document.createElement("button");
   close.type = "button";
@@ -1690,7 +1691,7 @@ function setupEmbed() {
   close.addEventListener("click", () => {
     window.parent?.postMessage({ type: "sp-chat-close" }, "*");
   });
-  header.insertBefore(close, newChatButton);
+  actions.insertBefore(close, newChatButton);
 
   // Keep the iframe height sensible when the on-screen keyboard opens.
   window.addEventListener("resize", () => {
