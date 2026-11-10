@@ -107,10 +107,13 @@ Copy `.env.example` to `.env` and fill in what you need.
 | `PORT` | no | HTTP port (default 3000). |
 | `APP_BASE_URL` | production | Public origin used in Stripe success/cancel URLs. |
 | `ALLOWED_ORIGINS` | production | Comma-separated browser origins. Use `https://site.salvagepulsepro.com`. |
+| `LLM_PROVIDER` | no | `openai`, `gemini`, or a label for a compatible endpoint. Inferred when omitted. |
 | `LLM_API_KEY` | recommended | OpenAI-compatible key. Without it the bot runs in guided mode. |
-| `LLM_BASE_URL` | no | Default `https://api.openai.com/v1`. Works with compatible providers. |
-| `LLM_MODEL` | no | Default `gpt-4.1-mini`. |
+| `GEMINI_API_KEY` | Gemini | Google AI Studio key. Setting it (without an OpenAI key) selects Gemini. `GOOGLE_API_KEY` also works. |
+| `LLM_BASE_URL` | no | Provider default: OpenAI `https://api.openai.com/v1`, Gemini `https://generativelanguage.googleapis.com/v1beta/openai`. |
+| `LLM_MODEL` | no | Provider default: `gpt-4.1-mini` for OpenAI, `gemini-3.8-flash` for Gemini. |
 | `LLM_TIMEOUT_MS` | no | Provider request timeout (default 45 seconds). |
+| `LLM_REASONING_EFFORT` | no | Optional `minimal`, `low`, `medium`, or `high` for Gemini 3 / OpenAI reasoning models. |
 | `DATABASE_URL` | production | Postgres connection string. Empty uses `data/store.json`. |
 | `DATABASE_SSL` | no | Force TLS on/off. Supabase and Neon are auto-detected. |
 | `DATABASE_POOL_MAX` | no | Postgres pool size (default 5). |
@@ -129,7 +132,29 @@ Copy `.env.example` to `.env` and fill in what you need.
 
 ## 3. AI provider
 
-The server calls the OpenAI-compatible `POST /chat/completions` endpoint with tool/function calling. OpenAI works out of the box. Any gateway that implements the same request/response shape (Azure OpenAI proxy, OpenRouter, LiteLLM, Groq, Together, etc.) can be used by changing `LLM_BASE_URL` and `LLM_MODEL`.
+The server calls the OpenAI-compatible `POST /chat/completions` endpoint with tool/function calling. OpenAI works out of the box. **Google Gemini is a first-class option** through its OpenAI-compatible endpoint, and any gateway that implements the same request/response shape (Azure OpenAI proxy, OpenRouter, LiteLLM, Groq, Together, etc.) works by changing `LLM_BASE_URL` and `LLM_MODEL`.
+
+### Using Gemini
+
+1. Create a key at <https://aistudio.google.com/apikey>.
+2. Add it to `.env`:
+
+   ```env
+   LLM_PROVIDER=gemini
+   GEMINI_API_KEY=your-key
+   ```
+
+   That resolves to `https://generativelanguage.googleapis.com/v1beta/openai` and `gemini-3.8-flash`. Set `LLM_MODEL` to use another model (for example `gemini-3.6-flash` or `gemini-3.1-pro-preview`).
+
+3. Check it:
+
+   ```bash
+   npm run check:llm
+   ```
+
+Gemini 3 models "think" before answering. That is fine for tool calling, but it adds latency and output tokens. Set `LLM_REASONING_EFFORT=low` for support-chat speed, and raise `LLM_MAX_TOKENS` if replies get cut off.
+
+Gemini also attaches a thought signature to tool calls. The chat loop passes the provider's tool-call objects back unchanged, so multi-step tool calls (show plans, then contact, then checkout) keep working.
 
 ### Connecting a key
 
@@ -141,21 +166,24 @@ The server calls the OpenAI-compatible `POST /chat/completions` endpoint with to
    LLM_MODEL=gpt-4.1-mini
    ```
 
+   `LLM_BASE_URL` and `LLM_MODEL` are optional; omit them to use the provider defaults.
+
 2. Verify it without starting the app:
 
    ```bash
    npm run check:llm
    ```
 
-   It prints the base URL, model, masked key, latency, and the provider's reply. A 401 means the key does not match the provider; a 404 means the model or base URL is wrong.
+   It prints the provider, base URL, model, masked key, latency, and the provider's reply. A 401 means the key does not match the provider; a 404 means the model or base URL is wrong.
 
-3. Start the app and check `GET /api/health`. With a working key it returns `"llm": true` and `"llmModel": "<model>"`.
+3. Start the app and check `GET /api/health`. With a working key it returns `"llm": true`, `"llmProvider": "gemini"` (or `openai`), and `"llmModel": "<model>"`.
 
 Examples for other providers:
 
 | Provider | `LLM_BASE_URL` | Example `LLM_MODEL` |
 |---|---|---|
 | OpenAI | `https://api.openai.com/v1` | `gpt-4.1-mini` |
+| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3.8-flash` |
 | OpenRouter | `https://openrouter.ai/api/v1` | `openai/gpt-4.1-mini` |
 | Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
 | LiteLLM / vLLM | `http://localhost:4000/v1` | your alias |

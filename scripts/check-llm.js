@@ -4,7 +4,8 @@
  *
  *   npm run check:llm
  *
- * Reads the same env as the server (LLM_API_KEY / LLM_BASE_URL / LLM_MODEL).
+ * Reads the same env as the server (LLM_API_KEY / GEMINI_API_KEY,
+ * LLM_PROVIDER, LLM_BASE_URL / LLM_MODEL).
  * Exits non-zero if the provider is missing or rejects the request, so it
  * can gate a deploy or be run after changing keys.
  */
@@ -20,13 +21,14 @@ function mask(key) {
 const started = Date.now();
 
 console.log("LLM check");
+console.log(`  provider : ${config.llm.provider}`);
 console.log(`  base URL : ${config.llm.baseUrl}`);
 console.log(`  model    : ${config.llm.model}`);
 console.log(`  key      : ${mask(config.llm.apiKey)}`);
 console.log(`  timeout  : ${config.llm.timeoutMs} ms`);
 
 if (!config.llm.apiKey) {
-  console.error("\nFAIL: no LLM_API_KEY (or OPENAI_API_KEY) is set. Add it to .env and rerun.");
+  console.error("\nFAIL: no LLM_API_KEY (or GEMINI_API_KEY) is set. Add it to .env and rerun.");
   process.exit(1);
 }
 
