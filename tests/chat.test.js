@@ -67,6 +67,39 @@ test("guided mode answers product questions from the knowledge base", async () =
   assert.match(result.reply, /Greeting|Needs Discovery|7/i);
 });
 
+test("guided mode does not mistake product questions for demo or contact requests", async () => {
+  const pricing = await runAssistant({ message: "Show me pricing", sessionId: "test-session" });
+  assert.ok(pricing.actions.some((item) => item.type === "plans"));
+  assert.ok(!pricing.actions.some((item) => item.type === "calcom"));
+
+  const phones = await runAssistant({ message: "What phone systems do you support?", sessionId: "test-session" });
+  assert.match(phones.reply, /RingCentral/i);
+  assert.ok(!phones.actions.some((item) => item.type === "contact_form"));
+});
+
+test("guided mode answers security and delivery questions from the right section", async () => {
+  const security = await runAssistant({ message: "Is my data secure?", sessionId: "test-session" });
+  assert.match(security.reply, /security|privacy|certification/i);
+  assert.doesNotMatch(security.reply, /hosted checkout/i);
+
+  const delivery = await runAssistant({
+    message: "Can I combine delivery and invoice totals?",
+    sessionId: "test-session",
+  });
+  assert.match(delivery.reply, /delivery dispatch|order-to-delivery/i);
+  assert.doesNotMatch(delivery.reply, /hosted checkout/i);
+});
+
+test("guided mode introduces Wheelie and explains the demo", async () => {
+  const intro = await runAssistant({ message: "What does Wheelie do?", sessionId: "test-session" });
+  assert.match(intro.reply, /Wheelie/i);
+  assert.match(intro.reply, /plans|demo/i);
+
+  const demo = await runAssistant({ message: "What happens on the demo?", sessionId: "test-session" });
+  assert.match(demo.reply, /45 minutes|tailored/i);
+  assert.ok(demo.actions.some((item) => item.type === "calcom"));
+});
+
 test("account-specific questions prompt a secure account connection", async () => {
   const result = await runAssistant({ message: "What plan am I on?", sessionId: "test-session" });
   assert.ok(result.actions.some((item) => item.type === "account_login"));

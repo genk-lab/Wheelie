@@ -324,6 +324,7 @@
   function applyState() {
     frameWrap.classList.toggle("open", open);
     frameWrap.setAttribute("aria-hidden", String(!open));
+    frameWrap.inert = !open;
     button.setAttribute("aria-expanded", String(open));
     button.setAttribute("aria-label", open ? "Close Wheelie" : "Open Wheelie, the Salvage Pulse assistant");
     button.innerHTML = open

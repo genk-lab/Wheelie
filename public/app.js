@@ -14,6 +14,11 @@ const DEFAULT_SUGGESTIONS = [
   "Book a 1-on-1 demo",
 ];
 
+// Action cards that are safe to re-render from a restored transcript.
+// Checkout confirmations and demo forms are excluded because prices and
+// availability can go stale between visits.
+const RESTORABLE_ACTIONS = new Set(["plans", "links", "calcom", "contact_form", "account_login"]);
+
 const state = {
   sessionId: localStorage.getItem(SESSION_KEY) || `web_${crypto.randomUUID().slice(0, 12)}`,
   history: [],
@@ -25,6 +30,7 @@ const state = {
   embed: new URLSearchParams(location.search).has("embed") || window.self !== window.top,
   accountToken: sessionStorage.getItem(ACCOUNT_KEY) || "",
   account: null,
+  retryMessage: "",
 };
 
 localStorage.setItem(SESSION_KEY, state.sessionId);
@@ -151,7 +157,16 @@ function addMessage(role, content, actions = [], { persist = true, focus = true 
   if (!messagesEl) return null;
 
   if (persist) {
-    state.transcript.push({ role, content, ts: Date.now() });
+    const savedActions =
+      role === "assistant"
+        ? (actions || [])
+            .filter((action) => RESTORABLE_ACTIONS.has(action?.type))
+            .map((action) => ({
+              ...action,
+              ...(action.type === "plans" ? { plans: (action.plans || []).slice(0, 6) } : {}),
+            }))
+        : [];
+    state.transcript.push({ role, content, ts: Date.now(), actions: savedActions });
     if (state.transcript.length > 40) state.transcript = state.transcript.slice(-40);
     persistTranscript();
   }
@@ -223,9 +238,12 @@ function restoreTranscript() {
 
     for (const item of transcript) {
       if (!item || !["user", "assistant"].includes(item.role) || typeof item.content !== "string") continue;
-      state.transcript.push({ role: item.role, content: item.content, ts: item.ts || Date.now() });
+      const actions = Array.isArray(item.actions)
+        ? item.actions.filter((action) => RESTORABLE_ACTIONS.has(action?.type))
+        : [];
+      state.transcript.push({ role: item.role, content: item.content, ts: item.ts || Date.now(), actions });
       state.history.push({ role: item.role, content: item.content });
-      const wrapper = addMessage(item.role, item.content, [], { persist: false, focus: false });
+      const wrapper = addMessage(item.role, item.content, actions, { persist: false, focus: false });
       if (wrapper) wrapper.dataset.restored = "true";
     }
     return true;
@@ -242,7 +260,9 @@ function renderSuggestions() {
     chip.type = "button";
     chip.className = "chip";
     chip.textContent = text;
-    chip.addEventListener("click", () => sendMessage(text));
+    chip.addEventListener("click", () =>
+      sendMessage(text === "Try again" && state.retryMessage ? state.retryMessage : text),
+    );
     suggestionsEl.appendChild(chip);
   }
 }
@@ -1302,6 +1322,7 @@ async function sendMessage(text) {
     addMessage("assistant", reply, data.actions || []);
 
     state.suggestions = Array.isArray(data.suggestions) && data.suggestions.length ? data.suggestions : DEFAULT_SUGGESTIONS;
+    state.retryMessage = "";
     renderSuggestions();
     persistTranscript();
   } catch (error) {
@@ -1313,6 +1334,7 @@ async function sendMessage(text) {
       { type: "contact_form", department: "sales", reason: error.message },
     ]);
     state.suggestions = ["Try again", "Contact sales", "Book a demo"];
+    state.retryMessage = message;
     renderSuggestions();
     showToast(error.message || "Connection issue");
   } finally {
@@ -1328,6 +1350,7 @@ function newChat() {
   state.history = [];
   state.transcript = [];
   state.suggestions = DEFAULT_SUGGESTIONS;
+  state.retryMessage = "";
   messagesEl.innerHTML = "";
   localStorage.removeItem(STORAGE_KEY);
   addMessage(

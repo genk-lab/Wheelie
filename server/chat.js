@@ -611,7 +611,7 @@ function finalTextFromActions(actions, fallback) {
 }
 
 export async function runAssistant({ message, history = [], sessionId, page = "site", accountToken = "" }) {
-  const safeMessage = cleanMultiline(message, 2000);
+  const safeMessage = cleanMultiline(message, 4000);
   if (!safeMessage) {
     const error = new Error("Message is required.");
     error.status = 400;
@@ -759,6 +759,15 @@ function guidedReply(message, history) {
     };
   }
 
+  if (/^(who are you|what are you|what can you do|what do you do|what does wheelie do|what is wheelie)\b/.test(text)) {
+    return {
+      reply:
+        "I'm Wheelie, the Salvage Pulse yard assistant. I can explain the platform (call scoring, AI role-play, Demand Radar, and Delivery Dispatch), compare the five plans, book a 1-on-1 demo on Cal.com, route a message to sales or support, and answer questions about your own yard once you connect your account. I don't invent prices or promises — if something isn't covered, I'll point you to the team.",
+      actions: [],
+      suggestions: DEFAULT_SUGGESTIONS,
+    };
+  }
+
   if (/\b(trial|free day|try it|try before|no card|credit card)\b/.test(text)) {
     return {
       reply:
@@ -778,7 +787,7 @@ function guidedReply(message, history) {
     };
   }
 
-  if (/\b(contact|human|person|sales|support|email|call me|talk to|quote|procurement|security review)\b/.test(text)) {
+  if (/\b(contact|human|person|sales|email|call me|talk to|speak to|reach out|message the team|procurement|security review|quote me|get a quote|need a quote)\b/.test(text)) {
     const department = /\b(support|technical|bug|broken|login|password|account)\b/.test(text) ? "support" : "sales";
     return {
       reply:
@@ -790,7 +799,17 @@ function guidedReply(message, history) {
     };
   }
 
-  if (/\b(demo|schedule|appointment|walkthrough|see it|show me|book a call|meeting)\b/.test(text)) {
+  if (/\bdemo\b/.test(text) && /\b(what|how|prepare|expect|long|length|happen|happens|include)\b/.test(text)) {
+    const demoSection = sections.find((item) => item.id === "demo");
+    const calcom = calcomAction();
+    return {
+      reply: trimText(demoSection.content, 900),
+      actions: [calcom || { type: "demo_form", slots: [], prefill: {} }],
+      suggestions: ["Book a demo", "Compare plans"],
+    };
+  }
+
+  if (/\b(demo|schedule|appointment|walkthrough|book a call|meeting|show me how|see it in action)\b/.test(text)) {
     const calcom = calcomAction();
     return {
       reply: calcom
@@ -867,7 +886,10 @@ function guidedReply(message, history) {
     };
   }
 
-  if (/\b(buy|purchase|checkout|check out|subscribe|pay|start a subscription|sign up|get started)\b/.test(text)) {
+  if (
+    /\b(buy|purchase|checkout|check out|subscribe|pay|start a subscription|sign up|get started)\b/.test(text) &&
+    !/\b(secure|safe|safety|encrypted|security)\b/.test(text)
+  ) {
     if (plan && interval) {
       if (!stripeEnabled()) return checkoutPendingReply(plan, interval);
       return {
@@ -913,7 +935,10 @@ function guidedReply(message, history) {
     };
   }
 
-  if (/\b(secure|stripe|card|payment|billing|invoice|receipt|cancel|refund)\b/.test(text)) {
+  if (
+    /\b(stripe|card|payment|billing|invoice|receipt|cancel|refund|checkout|secure checkout)\b/.test(text) &&
+    !/\b(delivery|dispatch|arrival|driver|truck)\b/.test(text)
+  ) {
     const section = sections.find((item) => item.id === "billing");
     return {
       reply: trimText(section.content, 900),
