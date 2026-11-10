@@ -24,6 +24,11 @@ let legacy;
 try {
   legacy = JSON.parse(await fs.readFile(file, "utf8"));
 } catch (error) {
+  if (error.code === "ENOENT") {
+    console.log(`No local JSON store at ${file} — nothing to import.`);
+    console.log("The Postgres store is already the source of truth. Start the app normally.");
+    process.exit(0);
+  }
   console.error(`Could not read ${file}: ${error.message}`);
   process.exit(1);
 }
