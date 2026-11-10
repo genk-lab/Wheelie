@@ -22,6 +22,7 @@ export function createPostgresStore({ pool, connectionString, ssl, max } = {}) {
       connectionString,
       ssl,
       max: max || 5,
+      connectionTimeoutMillis: Number(process.env.DATABASE_CONNECT_TIMEOUT_MS || 5_000),
     });
 
   if (ownsPool) {
@@ -100,5 +101,9 @@ export function createPostgresStore({ pool, connectionString, ssl, max } = {}) {
     if (ownsPool) await db.end().catch(() => {});
   }
 
-  return { readStore, updateStore, initStore: ensureSchema, close };
+  async function pingStore() {
+    await db.query("SELECT 1");
+  }
+
+  return { readStore, updateStore, initStore: ensureSchema, close, pingStore };
 }

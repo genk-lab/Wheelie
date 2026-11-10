@@ -13,7 +13,7 @@ import {
   retrieveCheckoutSession,
   stripeEnabled,
 } from "./stripe.js";
-import { addEvent, closeStore, initStore, readStore, storageMode, updateStore } from "./store.js";
+import { addEvent, closeStore, initStore, pingStore, readStore, storageMode, updateStore } from "./store.js";
 import {
   changeAccountPassword,
   getAccountSummary,
@@ -151,7 +151,13 @@ app.use(express.json({ limit: "256kb" }));
 
 /* ---------------------------------- API ---------------------------------- */
 
-app.get("/api/health", (req, res) => {
+app.get("/api/health", async (req, res) => {
+  let storageOk = true;
+  try {
+    await pingStore();
+  } catch {
+    storageOk = false;
+  }
   jsonResponse(res, 200, {
     ok: true,
     llm: Boolean(config.llm.apiKey),
@@ -159,6 +165,7 @@ app.get("/api/health", (req, res) => {
     stripe: stripeEnabled(),
     smtp: Boolean(config.smtp.host),
     storage: storageMode,
+    storageOk,
     time: new Date().toISOString(),
   });
 });

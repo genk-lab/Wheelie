@@ -29,6 +29,10 @@ export function closeStore() {
   return backend.close ? backend.close() : Promise.resolve();
 }
 
+export function pingStore() {
+  return backend.pingStore ? backend.pingStore() : Promise.resolve();
+}
+
 export async function addEvent(type, payload = {}) {
   return updateStore((store) => {
     const event = {

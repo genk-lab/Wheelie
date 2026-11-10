@@ -44,3 +44,7 @@ export async function updateStore(mutator) {
 export async function initStore() {
   await ensureDir();
 }
+
+export async function pingStore() {
+  await ensureDir();
+}
