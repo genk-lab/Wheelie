@@ -7,6 +7,7 @@ import path from "node:path";
 
 const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), "sp-llm-"));
 let calls = 0;
+let secondRequest = null;
 
 const server = http.createServer((req, res) => {
   if (req.method !== "POST" || !req.url.endsWith("/chat/completions")) {
@@ -38,6 +39,9 @@ const server = http.createServer((req, res) => {
                     id: "call_1",
                     type: "function",
                     function: { name: "show_plans", arguments: JSON.stringify({}) },
+                    // Gemini 3 attaches a thought signature that must be
+                    // echoed back on the next turn.
+                    extra_content: { google: { thought_signature: "sig-123" } },
                   },
                 ],
               },
@@ -46,6 +50,7 @@ const server = http.createServer((req, res) => {
         }),
       );
     } else {
+      secondRequest = parsed;
       res.end(
         JSON.stringify({
           choices: [
@@ -81,6 +86,12 @@ test("runs the tool loop and returns UI actions plus a final reply", async () =>
   assert.ok(action);
   assert.equal(action.plans.length, 5);
   assert.equal(calls, 2);
+  const assistantTurn = secondRequest?.messages.find(
+    (message) => message.role === "assistant" && message.tool_calls?.length,
+  );
+  assert.deepEqual(assistantTurn?.tool_calls?.[0]?.extra_content, {
+    google: { thought_signature: "sig-123" },
+  });
 });
 
 test.after(async () => {

@@ -3,6 +3,46 @@ import "dotenv/config";
 const port = Number(process.env.PORT || 3000);
 const baseUrl = (process.env.APP_BASE_URL || `http://localhost:${port}`).replace(/\/$/, "");
 
+const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai";
+const GEMINI_DEFAULT_MODEL = "gemini-3.8-flash";
+
+/**
+ * Resolve the LLM provider from environment variables.
+ *
+ * Gemini is supported through its OpenAI-compatible endpoint, so the chat
+ * engine talks to it with the same Chat Completions + tool-calling code.
+ * Provider is inferred from LLM_PROVIDER, a Gemini base URL, or a
+ * GEMINI_API_KEY/GOOGLE_API_KEY when no OpenAI key is set.
+ */
+export function resolveLlm(env = process.env) {
+  const read = (name) => String(env[name] ?? "").trim();
+  const explicitProvider = read("LLM_PROVIDER").toLowerCase();
+  const geminiKey = read("GEMINI_API_KEY") || read("GOOGLE_API_KEY");
+  const openaiKey = read("LLM_API_KEY") || read("OPENAI_API_KEY");
+  const explicitBase = read("LLM_BASE_URL");
+  const explicitModel = read("LLM_MODEL");
+
+  const mentionsGemini = /generativelanguage\.googleapis\.com/i.test(explicitBase);
+  const isGemini =
+    explicitProvider === "gemini" ||
+    explicitProvider === "google" ||
+    (!explicitProvider && mentionsGemini) ||
+    (!explicitProvider && !explicitBase && !openaiKey && Boolean(geminiKey));
+
+  const provider = isGemini ? "gemini" : explicitProvider || (explicitBase ? "openai-compatible" : "openai");
+
+  return {
+    provider,
+    apiKey: isGemini ? geminiKey || openaiKey : openaiKey || geminiKey,
+    baseUrl: (explicitBase || (isGemini ? GEMINI_BASE_URL : "https://api.openai.com/v1")).replace(/\/+$/, ""),
+    model: explicitModel || (isGemini ? GEMINI_DEFAULT_MODEL : "gpt-4.1-mini"),
+    temperature: Number(env.LLM_TEMPERATURE || 0.25),
+    maxTokens: Number(env.LLM_MAX_TOKENS || 900),
+    timeoutMs: Number(env.LLM_TIMEOUT_MS || 45_000),
+    reasoningEffort: read("LLM_REASONING_EFFORT"),
+  };
+}
+
 // Hosted providers terminate TLS with their own certificate chain. Requiring
 // SSL by default avoids the confusing "SSL off" handshake error.
 function isManagedPostgres(url) {
@@ -20,14 +60,7 @@ export const config = {
     supportEmail: process.env.SUPPORT_EMAIL || "support@salvagepulse.com",
     phone: process.env.SALES_PHONE || "",
   },
-  llm: {
-    apiKey: process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || "",
-    baseUrl: (process.env.LLM_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, ""),
-    model: process.env.LLM_MODEL || "gpt-4.1-mini",
-    temperature: Number(process.env.LLM_TEMPERATURE || 0.25),
-    maxTokens: Number(process.env.LLM_MAX_TOKENS || 900),
-    timeoutMs: Number(process.env.LLM_TIMEOUT_MS || 45_000),
-  },
+  llm: resolveLlm(process.env),
   database: {
     url: process.env.DATABASE_URL || "",
     ssl:
@@ -89,7 +122,8 @@ export const config = {
 
 export function assertRuntimeConfig() {
   const warnings = [];
-  if (!config.llm.apiKey) warnings.push("LLM_API_KEY is not set. The chatbot will run in guided-script mode.");
+  if (!config.llm.apiKey)
+    warnings.push("LLM_API_KEY (or GEMINI_API_KEY) is not set. The chatbot will run in guided-script mode.");
   if (!config.stripe.secretKey) warnings.push("STRIPE_SECRET_KEY is not set. Checkout will show a setup message.");
   if (!config.adminToken) warnings.push("ADMIN_TOKEN is not set. The admin page is disabled.");
   return warnings;

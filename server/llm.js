@@ -216,6 +216,21 @@ export const toolDefinitions = [
   },
 ];
 
+export function buildChatPayload(messages, { tools = toolDefinitions } = {}) {
+  const payload = {
+    model: config.llm.model,
+    messages,
+    temperature: config.llm.temperature,
+    max_tokens: config.llm.maxTokens,
+  };
+  if (config.llm.reasoningEffort) payload.reasoning_effort = config.llm.reasoningEffort;
+  if (Array.isArray(tools) && tools.length) {
+    payload.tools = tools;
+    payload.tool_choice = "auto";
+  }
+  return payload;
+}
+
 export async function chatCompletion(messages, { tools = toolDefinitions } = {}) {
   if (!llmEnabled()) throw new Error("LLM is not configured.");
 
@@ -223,16 +238,7 @@ export async function chatCompletion(messages, { tools = toolDefinitions } = {})
   const timeout = setTimeout(() => controller.abort(), config.llm.timeoutMs);
 
   try {
-    const payload = {
-      model: config.llm.model,
-      messages,
-      temperature: config.llm.temperature,
-      max_tokens: config.llm.maxTokens,
-    };
-    if (Array.isArray(tools) && tools.length) {
-      payload.tools = tools;
-      payload.tool_choice = "auto";
-    }
+    const payload = buildChatPayload(messages, { tools });
 
     const response = await fetch(`${config.llm.baseUrl}/chat/completions`, {
       method: "POST",

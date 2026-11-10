@@ -161,6 +161,7 @@ app.get("/api/health", async (req, res) => {
   jsonResponse(res, 200, {
     ok: true,
     llm: Boolean(config.llm.apiKey),
+    llmProvider: config.llm.apiKey ? config.llm.provider : "",
     llmModel: config.llm.apiKey ? config.llm.model : "",
     stripe: stripeEnabled(),
     smtp: Boolean(config.smtp.host),
@@ -514,6 +515,7 @@ const server = app.listen(config.port, () => {
   console.log(`\nSalvage Pulse chatbot running at ${config.baseUrl}`);
   for (const warning of assertRuntimeConfig()) console.log(`  ! ${warning}`);
   console.log(`  Storage: ${storageMode}`);
+  console.log(`  LLM: ${config.llm.apiKey ? `${config.llm.provider} / ${config.llm.model}` : "guided mode (no key)"}`);
   console.log(`  Demo booking: ${config.demo.calcomUrl || "built-in scheduler"}`);
   console.log(`  Account-aware: ${config.appOrigin}`);
   console.log(`  Health: ${config.baseUrl}/api/health\n`);
