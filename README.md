@@ -53,7 +53,7 @@ The included `Dockerfile` runs on Node 22 Alpine. The volume is only needed when
 ### Hosting notes
 
 - **Render / Railway / Fly.io** — deploy the repository as a Node web service with `npm start`, set the env vars from `.env.example`, and point `DATABASE_URL` at a Postgres instance. The `render.yaml` blueprint creates one for you.
-- **Render one-click** — the blueprint provisions both the web service and a Postgres database, and wires `DATABASE_URL`. Set `APP_BASE_URL` to the Render URL and `ALLOWED_ORIGINS` to the marketing site after the first deploy. Render's free Postgres expires after 30 days, so move to a paid database (or Neon/Supabase) before that matters.
+- **Render one-click** — the blueprint creates the web service. Set `APP_BASE_URL`, `ALLOWED_ORIGINS`, `LLM_API_KEY`, and `DATABASE_URL` (Supabase Session pooler) in the dashboard after the first deploy.
 - **VPS** — put the Node process behind Caddy/NGINX with TLS, or use `pm2`/`systemd`.
 - **Serverless** — the Express app expects a long-lived process for the Stripe webhook. With Postgres configured, storage itself is fine on serverless-style hosts; keep the webhook on a long-lived instance or a platform that supports raw-body functions.
 - Always set `ALLOWED_ORIGINS` to the exact marketing-site origin in production, and use a strong `ADMIN_TOKEN`.
@@ -84,8 +84,16 @@ CREATE TABLE wheelie_state (
 All app state lives in the `main` row and every update runs inside a transaction with `SELECT ... FOR UPDATE`. That keeps concurrent writes (chat events, bookings, contacts, Stripe webhooks) consistent across processes and instances. `GET /api/health` reports `"storage": "postgres"`.
 
 - **Import an existing JSON store once:** `npm run import:json` (idempotent).
+- **Check the connection:** `npm run check:db` prints the masked URL, SSL mode, and row counts, or explains auth/DNS/SSL failures.
 - **Backups:** `pg_dump "$DATABASE_URL" > wheelie-backup.sql`.
-- **Hosts:** the `render.yaml` blueprint provisions Render Postgres and wires `DATABASE_URL`. Neon, Supabase, Railway, and RDS work too; add `?sslmode=require` or set `DATABASE_SSL=true`.
+- **Hosts:** Neon, Supabase, Railway, RDS, and Render Postgres all work; add `?sslmode=require` or set `DATABASE_SSL=true`. Supabase and Neon hosts are auto-detected and use TLS. The `render.yaml` blueprint expects `DATABASE_URL` to be set in the dashboard.
+- **Supabase:** use **Connect → Session pooler**, not the direct `db.<project>.supabase.co` host. The direct host is IPv6-only unless the project has the IPv4 add-on. The pooler URL looks like:
+
+  ```env
+  DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+  ```
+
+  URL-encode special characters in the password. Session mode (port 5432) fits this long-lived Node process; transaction mode (6543) also works.
 - **Schema changes:** none are needed for normal use. If you later split the document into real tables, keep the `readStore`/`updateStore` functions in `server/store.js` as the seam.
 
 ---
@@ -104,7 +112,7 @@ Copy `.env.example` to `.env` and fill in what you need.
 | `LLM_MODEL` | no | Default `gpt-4.1-mini`. |
 | `LLM_TIMEOUT_MS` | no | Provider request timeout (default 45 seconds). |
 | `DATABASE_URL` | production | Postgres connection string. Empty uses `data/store.json`. |
-| `DATABASE_SSL` | no | `true` for TLS with self-signed/managed certs, `false` to disable. |
+| `DATABASE_SSL` | no | Force TLS on/off. Supabase and Neon are auto-detected. |
 | `DATABASE_POOL_MAX` | no | Postgres pool size (default 5). |
 | `APP_ORIGIN` | no | App origin for account-aware mode. Default `https://app.salvagepulsepro.com`. |
 | `ACCOUNT_SESSION_MINUTES` | no | Account session lifetime (default 30 minutes). |

@@ -3,6 +3,12 @@ import "dotenv/config";
 const port = Number(process.env.PORT || 3000);
 const baseUrl = (process.env.APP_BASE_URL || `http://localhost:${port}`).replace(/\/$/, "");
 
+// Hosted providers terminate TLS with their own certificate chain. Requiring
+// SSL by default avoids the confusing "SSL off" handshake error.
+function isManagedPostgres(url) {
+  return Boolean(url && /supabase\.(co|com)|neon\.tech|neon\.build/i.test(url));
+}
+
 export const config = {
   port,
   baseUrl,
@@ -29,7 +35,9 @@ export const config = {
         ? { rejectUnauthorized: false }
         : process.env.DATABASE_SSL === "false"
           ? false
-          : undefined,
+          : isManagedPostgres(process.env.DATABASE_URL)
+            ? { rejectUnauthorized: false }
+            : undefined,
     poolMax: Number(process.env.DATABASE_POOL_MAX || 5),
   },
   stripe: {
