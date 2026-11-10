@@ -1,51 +1,32 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { config } from "./config.js";
+import * as jsonStore from "./store-json.js";
+import { createPostgresStore } from "./store-postgres.js";
+import { emptyStore } from "./store-defaults.js";
 
-const emptyStore = {
-  demos: [],
-  purchases: [],
-  contacts: [],
-  events: [],
-};
+export const storageMode = config.database.url ? "postgres" : "json";
 
-let writeChain = Promise.resolve();
+const backend = config.database.url
+  ? createPostgresStore({
+      connectionString: config.database.url,
+      ssl: config.database.ssl,
+      max: config.database.poolMax,
+    })
+  : jsonStore;
 
-function storePath() {
-  const dir = path.isAbsolute(config.dataDir)
-    ? config.dataDir
-    : path.join(process.cwd(), config.dataDir);
-  return path.join(dir, "store.json");
+export function readStore() {
+  return backend.readStore();
 }
 
-async function ensureDir() {
-  await fs.mkdir(path.dirname(storePath()), { recursive: true });
+export function updateStore(mutator) {
+  return backend.updateStore(mutator);
 }
 
-export async function readStore() {
-  await ensureDir();
-  try {
-    const raw = await fs.readFile(storePath(), "utf8");
-    const parsed = JSON.parse(raw);
-    return { ...emptyStore, ...parsed };
-  } catch (error) {
-    if (error.code === "ENOENT") return structuredClone(emptyStore);
-    throw error;
-  }
+export function initStore() {
+  return backend.initStore();
 }
 
-export async function updateStore(mutator) {
-  const run = async () => {
-    const store = await readStore();
-    const result = await mutator(store);
-    await ensureDir();
-    const tmp = `${storePath()}.${process.pid}.tmp`;
-    await fs.writeFile(tmp, JSON.stringify(store, null, 2), "utf8");
-    await fs.rename(tmp, storePath());
-    return result;
-  };
-  writeChain = writeChain.then(run, run);
-  return writeChain;
+export function closeStore() {
+  return backend.close ? backend.close() : Promise.resolve();
 }
 
 export async function addEvent(type, payload = {}) {
@@ -61,3 +42,5 @@ export async function addEvent(type, payload = {}) {
     return event;
   });
 }
+
+export { emptyStore };

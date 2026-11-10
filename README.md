@@ -36,7 +36,7 @@ npm install --omit=dev
 npm start
 ```
 
-Set `APP_BASE_URL` to the public URL. The server uses an in-process JSON store in `data/store.json`; back that file up or swap it for a database before high-volume use.
+Set `APP_BASE_URL` to the public URL. By default the server keeps its JSON store in `data/store.json`; set `DATABASE_URL` to use Postgres (recommended for production). See **Storage: Postgres** below.
 
 ### Docker
 
@@ -48,15 +48,45 @@ docker run --rm -p 3000:3000 \
   salvage-pulse-chatbot
 ```
 
-The included `Dockerfile` runs on Node 22 Alpine. Mount `/app/data` so contact records survive container restarts.
+The included `Dockerfile` runs on Node 22 Alpine. The volume is only needed when `DATABASE_URL` is not set.
 
 ### Hosting notes
 
-- **Render / Railway / Fly.io** — deploy the repository as a Node web service with `npm start`, set the env vars from `.env.example`, and attach a persistent disk at `/app/data` (or `DATA_DIR`).
-- **Render one-click** — a `render.yaml` blueprint is included. Connect the repo, apply the blueprint, then set `APP_BASE_URL` to the Render URL and `ALLOWED_ORIGINS` to the marketing site. The free plan sleeps after idle time and has an ephemeral filesystem, so leads/account sessions reset on restarts. Use a paid instance with a disk, or Postgres, for production.
+- **Render / Railway / Fly.io** — deploy the repository as a Node web service with `npm start`, set the env vars from `.env.example`, and point `DATABASE_URL` at a Postgres instance. The `render.yaml` blueprint creates one for you.
+- **Render one-click** — the blueprint provisions both the web service and a Postgres database, and wires `DATABASE_URL`. Set `APP_BASE_URL` to the Render URL and `ALLOWED_ORIGINS` to the marketing site after the first deploy. Render's free Postgres expires after 30 days, so move to a paid database (or Neon/Supabase) before that matters.
 - **VPS** — put the Node process behind Caddy/NGINX with TLS, or use `pm2`/`systemd`.
-- **Serverless** — the Express app expects a long-lived process for the Stripe webhook and JSON store. If you must use serverless, move storage to Postgres and adapt `server/store.js`.
+- **Serverless** — the Express app expects a long-lived process for the Stripe webhook. With Postgres configured, storage itself is fine on serverless-style hosts; keep the webhook on a long-lived instance or a platform that supports raw-body functions.
 - Always set `ALLOWED_ORIGINS` to the exact marketing-site origin in production, and use a strong `ADMIN_TOKEN`.
+
+### Storage: Postgres
+
+Without `DATABASE_URL`, the app writes one JSON file (`data/store.json`). That is fine for local development, but ephemeral hosts wipe it on restart.
+
+Set `DATABASE_URL` and the same code uses Postgres:
+
+```env
+DATABASE_URL=postgresql://user:password@host:5432/dbname
+# optional
+DATABASE_SSL=true            # managed hosts with self-signed certs
+DATABASE_POOL_MAX=5
+```
+
+On startup the server creates the table if it is missing:
+
+```sql
+CREATE TABLE wheelie_state (
+  id text PRIMARY KEY,
+  data jsonb NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+```
+
+All app state lives in the `main` row and every update runs inside a transaction with `SELECT ... FOR UPDATE`. That keeps concurrent writes (chat events, bookings, contacts, Stripe webhooks) consistent across processes and instances. `GET /api/health` reports `"storage": "postgres"`.
+
+- **Import an existing JSON store once:** `npm run import:json` (idempotent).
+- **Backups:** `pg_dump "$DATABASE_URL" > wheelie-backup.sql`.
+- **Hosts:** the `render.yaml` blueprint provisions Render Postgres and wires `DATABASE_URL`. Neon, Supabase, Railway, and RDS work too; add `?sslmode=require` or set `DATABASE_SSL=true`.
+- **Schema changes:** none are needed for normal use. If you later split the document into real tables, keep the `readStore`/`updateStore` functions in `server/store.js` as the seam.
 
 ---
 
@@ -72,12 +102,16 @@ Copy `.env.example` to `.env` and fill in what you need.
 | `LLM_API_KEY` | recommended | OpenAI-compatible key. Without it the bot runs in guided mode. |
 | `LLM_BASE_URL` | no | Default `https://api.openai.com/v1`. Works with compatible providers. |
 | `LLM_MODEL` | no | Default `gpt-4.1-mini`. |
+| `LLM_TIMEOUT_MS` | no | Provider request timeout (default 45 seconds). |
+| `DATABASE_URL` | production | Postgres connection string. Empty uses `data/store.json`. |
+| `DATABASE_SSL` | no | `true` for TLS with self-signed/managed certs, `false` to disable. |
+| `DATABASE_POOL_MAX` | no | Postgres pool size (default 5). |
 | `APP_ORIGIN` | no | App origin for account-aware mode. Default `https://app.salvagepulsepro.com`. |
 | `ACCOUNT_SESSION_MINUTES` | no | Account session lifetime (default 30 minutes). |
 | `STRIPE_SECRET_KEY` | for checkout | `sk_test_...` or `sk_live_...`. Not required yet. |
 | `STRIPE_WEBHOOK_SECRET` | production | `whsec_...` from the Stripe webhook endpoint. |
 | `SMTP_*` | recommended | Contact notification email. Cal.com sends its own demo emails. |
-| `ADMIN_TOKEN` | optional | Enables `/admin` and `/api/admin/summary`. |
+| `ADMIN_TOKEN` | optional | Enables `/admin` and `/api/admin/summary`. Send it as `X-Admin-Token`. |
 | `CALCOM_URL` | no | Defaults to the live demo link. Set to `internal` to use the built-in scheduler. |
 | `DEMO_*` | no | Built-in scheduler time zone, slots, lead time, duration, capacity. |
 
@@ -88,6 +122,43 @@ Copy `.env.example` to `.env` and fill in what you need.
 ## 3. AI provider
 
 The server calls the OpenAI-compatible `POST /chat/completions` endpoint with tool/function calling. OpenAI works out of the box. Any gateway that implements the same request/response shape (Azure OpenAI proxy, OpenRouter, LiteLLM, Groq, Together, etc.) can be used by changing `LLM_BASE_URL` and `LLM_MODEL`.
+
+### Connecting a key
+
+1. Put the key and provider in `.env`:
+
+   ```env
+   LLM_API_KEY=sk-...
+   LLM_BASE_URL=https://api.openai.com/v1
+   LLM_MODEL=gpt-4.1-mini
+   ```
+
+2. Verify it without starting the app:
+
+   ```bash
+   npm run check:llm
+   ```
+
+   It prints the base URL, model, masked key, latency, and the provider's reply. A 401 means the key does not match the provider; a 404 means the model or base URL is wrong.
+
+3. Start the app and check `GET /api/health`. With a working key it returns `"llm": true` and `"llmModel": "<model>"`.
+
+Examples for other providers:
+
+| Provider | `LLM_BASE_URL` | Example `LLM_MODEL` |
+|---|---|---|
+| OpenAI | `https://api.openai.com/v1` | `gpt-4.1-mini` |
+| OpenRouter | `https://openrouter.ai/api/v1` | `openai/gpt-4.1-mini` |
+| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+| LiteLLM / vLLM | `http://localhost:4000/v1` | your alias |
+
+The key stays server-side. The browser only calls this app's `/api/chat`. If the provider fails, times out (`LLM_TIMEOUT_MS`), or returns an empty message, the request is answered by guided mode and the failure is logged, so the chat never goes dead.
+
+### Tuning
+
+- `LLM_MODEL` — a small fast model is enough; the system prompt carries the product facts.
+- `LLM_MAX_TOKENS` (default 900) and `LLM_TEMPERATURE` (default 0.25).
+- `LLM_TIMEOUT_MS` (default 45000). Lower it if you want a faster guided-mode fallback.
 
 The assistant is deliberately constrained:
 

@@ -1,3 +1,9 @@
+databases:
+  - name: salvage-pulse-wheelie-db
+    databaseName: wheelie
+    user: wheelie
+    plan: free
+
 services:
   - type: web
     name: salvage-pulse-wheelie
@@ -5,6 +11,7 @@ services:
     plan: free
     buildCommand: npm install --no-audit --no-fund
     startCommand: node server/index.js
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
         value: "22"
@@ -26,3 +33,7 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: salvage-pulse-wheelie-db
+          property: connectionString

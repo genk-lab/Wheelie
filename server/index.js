@@ -1,5 +1,6 @@
 import express from "express";
 import path from "node:path";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { config, assertRuntimeConfig } from "./config.js";
 import { runAssistant, saveContact, validateContact } from "./chat.js";
@@ -12,7 +13,7 @@ import {
   retrieveCheckoutSession,
   stripeEnabled,
 } from "./stripe.js";
-import { addEvent, readStore, updateStore } from "./store.js";
+import { addEvent, closeStore, initStore, readStore, storageMode, updateStore } from "./store.js";
 import {
   changeAccountPassword,
   getAccountSummary,
@@ -154,8 +155,10 @@ app.get("/api/health", (req, res) => {
   jsonResponse(res, 200, {
     ok: true,
     llm: Boolean(config.llm.apiKey),
+    llmModel: config.llm.apiKey ? config.llm.model : "",
     stripe: stripeEnabled(),
     smtp: Boolean(config.smtp.host),
+    storage: storageMode,
     time: new Date().toISOString(),
   });
 });
@@ -410,8 +413,13 @@ app.get("/api/checkout/status", async (req, res, next) => {
 
 function adminAllowed(req) {
   if (!config.adminToken) return false;
-  const supplied = req.query.token || req.headers["x-admin-token"];
-  return supplied && supplied === config.adminToken;
+  const supplied = clean(req.headers["x-admin-token"], 500);
+  if (!supplied) return false;
+  // Constant-time-ish comparison: hash both values so length differences
+  // do not short-circuit the loop.
+  const a = createHash("sha256").update(String(supplied)).digest();
+  const b = createHash("sha256").update(String(config.adminToken)).digest();
+  return timingSafeEqual(a, b);
 }
 
 app.get("/api/admin/summary", async (req, res) => {
@@ -487,13 +495,30 @@ app.use((error, req, res, next) => {
   });
 });
 
-app.listen(config.port, () => {
+try {
+  await initStore();
+} catch (error) {
+  console.error(`[db] could not initialize ${storageMode} storage:`, error.message);
+  console.error("Check DATABASE_URL / DATABASE_SSL, or remove DATABASE_URL to use the local JSON store.");
+  process.exit(1);
+}
+
+const server = app.listen(config.port, () => {
   console.log(`\nSalvage Pulse chatbot running at ${config.baseUrl}`);
   for (const warning of assertRuntimeConfig()) console.log(`  ! ${warning}`);
+  console.log(`  Storage: ${storageMode}`);
   console.log(`  Demo booking: ${config.demo.calcomUrl || "built-in scheduler"}`);
   console.log(`  Account-aware: ${config.appOrigin}`);
   console.log(`  Health: ${config.baseUrl}/api/health\n`);
 });
+
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, async () => {
+    server.close();
+    await closeStore();
+    process.exit(0);
+  });
+}
 
 /* ------------------------------- Helpers --------------------------------- */
 

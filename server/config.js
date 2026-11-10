@@ -20,6 +20,17 @@ export const config = {
     model: process.env.LLM_MODEL || "gpt-4.1-mini",
     temperature: Number(process.env.LLM_TEMPERATURE || 0.25),
     maxTokens: Number(process.env.LLM_MAX_TOKENS || 900),
+    timeoutMs: Number(process.env.LLM_TIMEOUT_MS || 45_000),
+  },
+  database: {
+    url: process.env.DATABASE_URL || "",
+    ssl:
+      process.env.DATABASE_SSL === "true"
+        ? { rejectUnauthorized: false }
+        : process.env.DATABASE_SSL === "false"
+          ? false
+          : undefined,
+    poolMax: Number(process.env.DATABASE_POOL_MAX || 5),
   },
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY || "",
