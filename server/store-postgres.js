@@ -59,15 +59,21 @@ export function createPostgresStore({ pool, connectionString, ssl, max } = {}) {
     const client = await db.connect();
     try {
       await client.query("BEGIN");
-      const result = await client.query(
+      let result = await client.query(
         `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
         [ROW_ID],
       );
 
       if (!result.rows.length) {
+        // First write before init ran: create the row, then lock it.
         await client.query(
-          `INSERT INTO ${TABLE} (id, data) VALUES ($1, $2::jsonb)`,
+          `INSERT INTO ${TABLE} (id, data) VALUES ($1, $2::jsonb)
+           ON CONFLICT (id) DO NOTHING`,
           [ROW_ID, JSON.stringify(normalizeStore())],
+        );
+        result = await client.query(
+          `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
+          [ROW_ID],
         );
       }
 
