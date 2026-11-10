@@ -23,8 +23,8 @@ const PLAN_ALIASES = [
 const DEFAULT_SUGGESTIONS = [
   "What does Salvage Pulse do?",
   "Compare plans",
+  "How does delivery dispatch work?",
   "Book a 1-on-1 demo",
-  "What plan am I on?",
 ];
 
 function publicPlans() {

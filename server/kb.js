@@ -21,6 +21,7 @@ export const plans = [
       "RingCentral + webhook connectors",
       "Customer & win-back lists",
       "Daily opportunity emails",
+      "Delivery dispatch & order-to-delivery visibility",
     ],
   },
   {
@@ -110,6 +111,7 @@ WHAT IT DOES
 - Scores every call against a 7-metric rubric and categorizes it.
 - Gives reps an AI role-play trainer and managers a performance console.
 - Builds callback queues, win-back lists, vehicle arrival matches, and demand signals for auction buying.
+- Tracks each delivery from order to arrival: delivery report upload, customer and call matching, rep assignment, arrival call or text, and delivery QA.
 
 PLANS (USD, per month unless annual)
 - Starter $99/mo or $1,089/yr · up to 3 rep logins.
@@ -118,6 +120,7 @@ PLANS (USD, per month unless annual)
 - Enterprise $649/mo or $7,139/yr · up to 75 rep logins, 2 locations, demand/stock intelligence, ERP/Hollander sync.
 - Enterprise Platinum $1,149/mo or $12,639/yr · unlimited reps, up to 4 locations (+$100/mo per extra), custom SLA, dedicated director.
 - Annual billing is 11 months' price for 12 months (one month free).
+- Delivery dispatch and order-to-delivery visibility are included in every plan.
 - 1-day free trial, no credit card required. Enterprise trials can be requested.
 
 STRICT RULES
@@ -135,6 +138,8 @@ export const sections = [
     title: "What Salvage Pulse is",
     keywords: ["what", "product", "overview", "do", "platform", "software", "about", "solve", "problem", "why"],
     content: `Salvage Pulse is a data-driven call intelligence and yard intelligence platform purpose-built for automotive dismantlers. It turns recorded sales calls into structured data: transcripts, 7-metric QA scores, call categories, customer and vehicle matches, callback queues, coaching plans, and demand signals for auction buying.
+
+It also carries the sale through to the customer's door: delivery dispatch keeps the order, customer, assigned rep, arrival notice, and delivery confirmation in one order-to-delivery timeline.
 
 The core promise is simple: stop leaving salvage revenue on the counter. Generic CRMs do not understand Hollander interchange, core returns, OEM used parts, or the speed of a recycler sales desk. Salvage Pulse does.
 
@@ -170,7 +175,7 @@ Calls are also categorized (e.g., Sales Inquiry, Warranty/Return, Order/Sale, De
     id: "console",
     title: "Console, analytics, and manager tools",
     keywords: ["console", "dashboard", "analytics", "reports", "manager", "owner", "team", "performance", "leaderboard", "call library", "transcript", "coaching", "queue", "callbacks"],
-    content: `Managers and owners get a Team Dashboard, Call Library, Callbacks, Reps, Vehicles & Stock, Tag Vehicles, Reports, Leaderboards, Shift Calendar, Keyword Tracker, Role-Play Trainer, and Settings.
+    content: `Managers and owners get a Team Dashboard, Call Library, Callbacks, Reps, Vehicles & Stock, Tag Vehicles, Delivery Dispatch, Reports, Leaderboards, Shift Calendar, Keyword Tracker, Role-Play Trainer, and Settings.
 
 What they can do:
 - Monitor yard-wide closing rates, QA scores, call volume, and coaching flags.
@@ -178,6 +183,7 @@ What they can do:
 - Build callback lists, assign follow-ups, and work a daily action queue.
 - Compare reps, track score trends, and spot metric-level coaching gaps.
 - Track keywords and caller topics, including parts and vehicles that callers ask for but the yard does not have.
+- Follow deliveries from order to arrival: upload the delivery report, assign the rep, send the arrival call or text, and review delivery QA.
 
 Reps get a personal view: My Performance, My Calls, Callbacks, Vehicle Arrivals, Tag Vehicles, Reports, Leaderboards, Role-Play Trainer, and Settings. Reps see their own call makeup, scores, skill radar, and coaching recommendations — not the whole team's private data.
 Inventory managers get Vehicles & Stock, Yard Dashboard, Call Library, Shift Calendar, and Settings.`,
@@ -205,17 +211,33 @@ This is included from the Pro plan up.`,
 Demand and inventory intelligence is available on Enterprise and above; advanced sentiment analytics and leaderboards start on Pro Platinum.`,
   },
   {
+    id: "delivery",
+    title: "Delivery dispatch and order-to-delivery tracking",
+    keywords: ["delivery", "dispatch", "deliveries", "driver", "truck", "route", "arrival", "on the way", "on my way", "eta", "delivery report", "upload", "pdf", "csv", "invoice", "totals", "assign", "who uploaded", "customer match", "delivery qa", "address confirmed", "press 1", "escalation", "manager"],
+    content: `Delivery dispatch is included in every plan. It connects the original order, the customer record, the assigned rep, the arrival notice, and the final delivery in one continuous view, so the handoff from the sales desk to the customer's door is not pushed into a spreadsheet.
+
+What it includes:
+- Order-to-delivery timeline — follow each customer from the original quote and order through dispatch, arrival notice, and delivery confirmation. One record, one owner.
+- Delivery report upload — upload the salesperson delivery report as a PDF or CSV. Salvage Pulse reads customer, part, order, invoice, and contact details automatically.
+- Customer and call matching — each delivery is matched to the existing customer record and the original call, so context and contact information are already attached.
+- Rep assignment and tracking — assign the delivery to the right rep and see who uploaded it and who owns it.
+- Arrival call or text — notify the customer before the truck arrives, with a press-1 option to reach the assigned rep and manager escalation after repeated failed attempts. Customer contact information needs to be on the order for this to work.
+- Delivery QA and reporting — delivery calls are checked for date given, address confirmed, and customer thanked. Delivery and invoice totals can be combined by date for reporting.
+
+Owners, managers, and sales reps use delivery dispatch alongside the call console. Setup questions, phone-system requirements for arrival calls, and CSV/PDF import formats are handled by the team at support@salvagepulse.com.`,
+  },
+  {
     id: "pricing",
     title: "Pricing and plan selection",
     keywords: ["price", "pricing", "cost", "plan", "plans", "subscription", "monthly", "annual", "yearly", "cheap", "compare", "upgrade", "starter", "pro", "platinum", "enterprise", "how much"],
     content: `Plans (USD):
-- Starter — $99/mo or $1,089/yr — up to 3 rep logins. Call scoring & categories, RingCentral + webhook connectors, customer & win-back lists, daily opportunity emails.
+- Starter — $99/mo or $1,089/yr — up to 3 rep logins. Call scoring & categories, RingCentral + webhook connectors, customer & win-back lists, daily opportunity emails, delivery dispatch & order-to-delivery visibility.
 - Pro — $249/mo or $2,739/yr — 5 rep logins included. Everything in Starter plus AI role-play trainer, daily follow-up email, vehicle arrivals & call queue, rep performance console. Extra reps: +2 for $50/mo, up to $400/mo total.
 - Pro Platinum — $499/mo or $5,489/yr — up to 50 rep logins, everything in Pro plus yard champion leaderboards, advanced sentiment analytics, priority onboarding.
 - Enterprise — $649/mo or $7,139/yr — up to 75 rep logins, 2 locations, every tool including monthly trends, seasonal insights, vehicle demand, stock alerts, watchlists, custom ERP/Hollander sync, priority setup.
 - Enterprise Platinum — $1,149/mo or $12,639/yr — unlimited reps, up to 4 locations (+$100/mo per extra), dedicated director, custom SLA, priority 24/7 technical setup.
 
-Annual billing is 11 months' price for 12 months (one month free). All plans start with a 1-day free trial, no credit card required. Most single-counter independent yards start on Starter or Pro. Multi-location groups usually need Enterprise.`,
+Annual billing is 11 months' price for 12 months (one month free). All plans start with a 1-day free trial, no credit card required. Delivery dispatch and order-to-delivery visibility are included in every plan. Most single-counter independent yards start on Starter or Pro. Multi-location groups usually need Enterprise.`,
   },
   {
     id: "trial",

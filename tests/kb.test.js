@@ -33,6 +33,18 @@ test("retrieves role-play and integration content", () => {
   assert.ok(retrieveKnowledge("Does it connect to RingCentral?").some((s) => s.id === "phone-integration"));
 });
 
+test("retrieves delivery dispatch content", () => {
+  assert.ok(retrieveKnowledge("How does delivery dispatch work?").some((s) => s.id === "delivery"));
+  assert.ok(retrieveKnowledge("Can I upload a delivery report as a CSV?").some((s) => s.id === "delivery"));
+  assert.ok(retrieveKnowledge("Does the customer get an arrival text?").some((s) => s.id === "delivery"));
+});
+
+test("delivery dispatch is listed on the Starter plan", () => {
+  assert.ok(
+    getPlan("starter").features.some((feature) => /delivery dispatch/i.test(feature)),
+  );
+});
+
 test("builds a prompt with relevant knowledge", () => {
   const prompt = knowledgeForPrompt("How does call scoring work?");
   assert.match(prompt, /7-metric/i);

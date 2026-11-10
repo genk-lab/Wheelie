@@ -10,8 +10,8 @@ const ACCOUNT_KEY = "sp-account-token";
 const DEFAULT_SUGGESTIONS = [
   "What does Salvage Pulse do?",
   "Compare plans",
+  "How does delivery dispatch work?",
   "Book a 1-on-1 demo",
-  "What plan am I on?",
 ];
 
 const state = {
